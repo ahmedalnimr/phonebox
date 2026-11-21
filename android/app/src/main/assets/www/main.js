@@ -419,7 +419,10 @@ export function hour12() {
   }
   return false;
 }
-export const fmtClock = (H, M) => (hour12() ? `${H % 12 || 12}:${pad(M)} ${H < 12 ? 'AM' : 'PM'}` : `${pad(H)}:${pad(M)}`);
+export const clockPeriod = (hour) => I18n?.getLang() === 'ar'
+  ? (hour < 12 ? 'ص' : 'م')
+  : (hour < 12 ? 'AM' : 'PM');
+export const fmtClock = (H, M) => (hour12() ? `${H % 12 || 12}:${pad(M)} ${clockPeriod(H)}` : `${pad(H)}:${pad(M)}`);
 export const fmtHM = (d) => fmtClock(d.getHours(), d.getMinutes());
 export const fmtTime = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ':' + pad(s % 60); };
 export function fmtRate(bps) {
@@ -675,11 +678,16 @@ export function wxLines() {
   const desc = wxText(c.weather_code);
   const hi = d.temperature_2m_max ? wxDeg(d.temperature_2m_max[0]) : null;
   const lo = d.temperature_2m_min ? wxDeg(d.temperature_2m_min[0]) : null;
+  // Isolate signed temperatures and arrows without changing the Arabic description.
+  const rtl = document.documentElement.dir === 'rtl';
+  const isolate = (value) => rtl ? '\u2066' + value + '\u2069' : value;
+  const apparent = wxDeg(c.apparent_temperature);
+  const feelsLike = I18n?.getLang() === 'ar' ? isolate(apparent + '°') : apparent;
   return {
     icon: wxIcon(c.weather_code, c.is_day),
     temp: wxDeg(c.temperature_2m) + '°',
     desc: `${desc} · ${cfg.weather?.city || ''}`,
-    range: (hi != null ? `↑${hi}° ↓${lo}° · ` : '') + t('wx.feelsLike', { deg: wxDeg(c.apparent_temperature) }),
+    range: (hi != null && lo != null ? isolate(`↑${hi}° ↓${lo}°`) + ' · ' : '') + t('wx.feelsLike', { deg: feelsLike }),
   };
 }
 

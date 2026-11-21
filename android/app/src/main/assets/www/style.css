@@ -274,6 +274,7 @@ body.night #navCard, body.night #navChip { display: none; }
 [dir="rtl"] .clock { justify-content: flex-end; }
 @supports (font-size: 1cqh) {
   .clock { font-size: min(calc(var(--tf, .6) * 100cqh), 30cqw); }
+  [dir="rtl"] .clock { font-size: min(calc(var(--tf, .6) * 100cqh), 25cqw); }
 }
 .clock .colon { opacity: .55; margin: 0 .01em; }
 .clock .colon.dim { opacity: .2; }
@@ -373,6 +374,14 @@ body.offline .offline-msg { display: flex; }
 @container (max-height: 110px) { .w-media .m-top { display: none; } .w-media { justify-content: center; } }
 @container (max-width: 250px) { .w-media .vol { display: none; } }
 @container (min-height: 230px) and (min-width: 420px) { .w-media .ic.play { width: 62px; height: 62px; } .w-media .ic { width: 52px; height: 52px; } }
+
+/* Preserve physical transport order and isolate measurements from surrounding RTL labels. */
+[dir="rtl"] :where(.m-controls, .t-val, .g-val, .s-main, .s-main .multi b, .gd-big, .m-row > span:last-child, .wx-temp, .fc-v, .wc-t) {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+[dir="rtl"] :is(.t-val, .gd-temp) { text-align: right; }
+[dir="rtl"] .s-main { justify-content: flex-end; }
 
 /* ---------- metric tile ---------- */
 .w-stat { padding: clamp(5px, 9cqh, 10px) clamp(8px, 6cqw, 12px); }

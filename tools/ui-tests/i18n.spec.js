@@ -357,7 +357,7 @@ test('the Arabic clock keeps time components in order and the date RTL', async (
   const date = page.locator('.w-clock .date');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
 
-  for (const [hour, period] of [[1, 'AM'], [13, 'PM']]) {
+  for (const [hour, period] of [[1, 'ص'], [13, 'م']]) {
     const time = await page.evaluate((hour) => new Date(2026, 0, 1, hour, 24, 35).getTime(), hour);
     await page.clock.setFixedTime(time);
     await page.evaluate(async () => (await import('/panel/main.js')).emit('tick'));
