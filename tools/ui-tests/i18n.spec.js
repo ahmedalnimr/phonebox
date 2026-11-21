@@ -362,3 +362,26 @@ test('the idle media widget uses the Arabic no-audio label', async ({ page }) =>
   });
   expect(label).toBe('لا يوجد صوت');
 });
+
+test('the Arabic template dialog inserts the saved page title literally', async ({ page }) => {
+  const title = 'Budget $& <2026> "Q4"';
+  await page.addInitScript((title) => {
+    localStorage.setItem('pb-demo-config', JSON.stringify({
+      display: { language: 'ar' },
+      pages: [{ id: 'home', title, widgets: [] }],
+    }));
+  }, title);
+  await page.goto('/settings/#pages');
+  await expect(page.locator('#peHead input[type="text"]').nth(1)).toHaveValue(title);
+  await page.locator('#peHead').getByRole('button', { name: 'استبدال بقالب…' }).click();
+  await expect(page.locator('#modalBody h3')).toHaveText(`استبدال عناصر صفحة «${title}»`);
+});
+
+test('the shortcut delete button is localized in Arabic without changing its English label', async ({ page }) => {
+  await page.goto('/settings/#shortcuts');
+  await page.locator('#deck .key:not(.add)').first().click();
+  const deleteButton = page.locator('#editor button.danger');
+  await expect(deleteButton).toHaveAccessibleName('Delete');
+  await page.locator('#langSel').selectOption('ar');
+  await expect(deleteButton).toHaveAccessibleName('حذف');
+});

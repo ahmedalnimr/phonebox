@@ -9,6 +9,24 @@
 - Discord: a speaking ring can no longer stay on after someone stops talking when you switch channels; speaking
   events count only once both of the channel's subscriptions are in place (#354,
   [M00n-of-saturn](https://github.com/M00n-of-saturn)).
+- Display brightness: the slider keeps the level it was set to. It used to jump back to the old level for up to
+  30 s, until the agent read the monitor again (#360, [andrii-pavlykivskyi](https://github.com/andrii-pavlykivskyi)).
+
+**Panel**
+- The Spectrum bars and App console widgets stop asking the PC while nobody can see the panel (screen off, another
+  app in front): the spectrum no longer keeps the PC capturing its sound, polling every 40 ms once the live stream was
+  closed, and the console no longer asks which app is in front.
+
+**Tools**
+- `tools/demo-server.py` refuses a chunked request body (411) and closes the connection, instead of answering without
+  the body and reading it as the next request.
+
+**Languages**
+- The weather line no longer shows stray English ("weather condition", "weather forecast") after the condition, and
+  the weather conditions read right in Arabic, Czech, Hindi, Indonesian, Japanese, Korean, Thai, Traditional Chinese
+  and Ukrainian ("Clear" no longer reads as "Delete", "Showers" as a bathroom shower). A few other broken strings in
+  Hindi, Japanese, Korean, Russian, Thai and Ukrainian are fixed, and the release check now catches English left-overs,
+  raw bytes and empty translations (#358, [Yura-Kondratiuk](https://github.com/Yura-Kondratiuk)).
 
 ## 0.9.27 — 2026-11-21
 

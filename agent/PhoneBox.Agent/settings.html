@@ -2018,7 +2018,7 @@ function openTemplates(index) {
     closeModal(); renderPages(); changed();
   };
   $('modalBody').replaceChildren(
-    h('h3', {}, index == null ? tc('New page') : tc('Replace the widgets of "{title}"').replace('{title}', cfg.pages[index].title)),
+    h('h3', {}, index == null ? tc('New page') : tc('Replace the widgets of "{title}"').replace('{title}', () => cfg.pages[index].title)),
     h('div', { class: 'tpl-grid' },
       h('button', { class: 'tpl', onclick: () => pick(null) }, h('div', { class: 'mini empty-mini' }, icon('plus')), h('b', {}, t('s.js.blankPage')), h('small', {}, t('s.js.blankPageHint'))),
       ...catalog.templates.map((t) => h('button', { class: 'tpl', onclick: () => pick(t) }, miniMap(t.widgets), h('b', {}, rich(`${t.icon} ${t.title}`)), h('small', {}, t.desc)))));
@@ -2841,7 +2841,7 @@ function renderEditor() {
         h('button', { class: 'btn sm', onclick: () => moveKey(-1), disabled: selKey === 0 }, t('s.js.earlier')),
         h('button', { class: 'btn sm', onclick: () => moveKey(1), disabled: selKey === cfg.shortcuts.length - 1 }, t('s.js.later')),
         h('button', { class: 'btn sm', onclick: testKey }, icon('play', 'm'), t('s.test')),
-        h('button', { class: 'btn sm danger', onclick: delKey }, t('s.js.remove')))),
+        h('button', { class: 'btn sm danger', onclick: delKey }, window.PhoneBoxI18n.getLang() === 'ar' ? t('s.js.remove') : 'Delete'))),
     h('div', { class: 'grid2' },
       h('div', {},
         text('label', t('s.k.label'), t('s.k.labelHint')),
