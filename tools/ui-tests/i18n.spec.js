@@ -297,7 +297,7 @@ test('Arabic pages still turn: the pager keeps scrolling left to right', async (
 
 test('Arabic reads right to left without moving saved widget coordinates', async ({ page }) => {
   await show(page, [
-    { id: 'left', type: 'clock', x: 0, y: 0, w: 3, h: 2 },
+    { id: 'left', type: 'chart', x: 0, y: 0, w: 3, h: 2, options: { metrics: ['cpu'] } },
     { id: 'right', type: 'clock', x: 9, y: 0, w: 3, h: 2 },
   ]);
   await page.evaluate(() => {
@@ -313,6 +313,14 @@ test('Arabic reads right to left without moving saved widget coordinates', async
   const left = await widgets.first().boundingBox();
   const right = await widgets.last().boundingBox();
   expect(left.x).toBeLessThan(right.x);
+  await expect(widgets.first().locator('canvas').first()).toHaveCSS('direction', 'ltr');
+
+  await page.keyboard.press('o');
+  const preview = page.locator('.ov-map').first().locator('span');
+  await expect(preview).toHaveCount(2);
+  const previewLeft = await preview.first().boundingBox();
+  const previewRight = await preview.last().boundingBox();
+  expect(previewLeft.x).toBeLessThan(previewRight.x);
 });
 
 test('Arabic settings wraps a long adb path and localizes the appearance defaults', async ({ page }) => {
