@@ -269,6 +269,9 @@ body.night #navCard, body.night #navChip { display: none; }
   line-height: .95; letter-spacing: -0.04em; margin-left: -.03em;
   display: flex; align-items: flex-start;
 }
+/* Keep the time in reading order while the date and labels inherit the interface direction. */
+[dir="rtl"] .clock, [dir="rtl"] #nClock { direction: ltr; unicode-bidi: isolate; }
+[dir="rtl"] .clock { justify-content: flex-end; }
 @supports (font-size: 1cqh) {
   .clock { font-size: min(calc(var(--tf, .6) * 100cqh), 30cqw); }
 }

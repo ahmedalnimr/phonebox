@@ -2,16 +2,16 @@
 // that compared a localized label against the English word. Against the web demo, in German.
 const { test, expect } = require('@playwright/test');
 
-async function show(page, widgets) {
+async function show(page, widgets, display = { language: 'de' }) {
   await page.goto('/panel/');
-  await page.evaluate((widgets) => {
+  await page.evaluate(({ widgets, display }) => {
     localStorage.clear();
     localStorage.setItem('pb-demo-config', JSON.stringify({
       night: { enabled: false }, rules: [], shortcuts: [],
-      display: { language: 'de' },
+      display,
       pages: [{ id: 'one', title: 'One', widgets }],
     }));
-  }, widgets);
+  }, { widgets, display });
   await page.reload();
 }
 
@@ -347,4 +347,41 @@ test('follow system distinguishes Traditional Chinese and the legacy Indonesian 
     });
   });
   expect(resolved).toEqual(['zh-Hant', 'zh-Hant', 'zh', 'id', 'en', 'en']);
+});
+
+
+test('the Arabic clock keeps time components in order and the date RTL', async ({ page }) => {
+  await show(page, [{ id: 'clock', type: 'clock', x: 0, y: 0, w: 9, h: 4,
+    options: { status: false, weather: false } }], { language: 'ar', hour12: true });
+  const clock = page.locator('.w-clock .clock');
+  const date = page.locator('.w-clock .date');
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+
+  for (const [hour, period] of [[1, 'AM'], [13, 'PM']]) {
+    const time = await page.evaluate((hour) => new Date(2026, 0, 1, hour, 24, 35).getTime(), hour);
+    await page.clock.setFixedTime(time);
+    await page.evaluate(async () => (await import('/panel/main.js')).emit('tick'));
+    await expect(clock.locator('span')).toHaveText(['1', ':', '24', '35', period]);
+    const positions = await clock.locator('span').evaluateAll((parts) =>
+      parts.map((part) => part.getBoundingClientRect().left));
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  }
+
+  await expect(date).toHaveCSS('direction', 'rtl');
+  await expect(date).toHaveText(/يناير/);
+  await expect(page.locator('#nClock')).toHaveCSS('direction', 'ltr');
+  await expect(page.locator('#nDate')).toHaveCSS('direction', 'rtl');
+});
+
+test('the idle media widget uses the Arabic no-audio label', async ({ page }) => {
+  await show(page, [{ id: 'media', type: 'media', x: 0, y: 0, w: 8, h: 4, options: {} }], { language: 'ar' });
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
+  await expect(page.locator('.w-media')).toBeVisible();
+  const label = await page.evaluate(async () => {
+    const main = await import('/panel/main.js');
+    main.D.state = { ...main.D.state, media: null };
+    main.emit('state');
+    return document.querySelector('.w-media .m-title').textContent;
+  });
+  expect(label).toBe('لا يوجد صوت');
 });
