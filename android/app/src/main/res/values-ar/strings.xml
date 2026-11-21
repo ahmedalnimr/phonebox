@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pair_title">هل تريد الاقتران بهذا الكمبيوتر؟</string>
+    <string name="pair_message">«&#x2068;%1$s&#x2069;» على العنوان &#x2066;%2$s&#x2069; (المنفذ &#x2066;%3$d&#x2069;).\n\nتأكد من أن نافذة الاقتران على الكمبيوتر تعرض الرمز &#x2066;%4$s&#x2069;.\n\nتابع فقط إذا كنت قد بدأت الاقتران على هذا الكمبيوتر.</string>
+    <string name="pair_positive">اقتران</string>
+    <string name="pair_negative">إلغاء</string>
+    <string name="pair_progress">جارٍ الاقتران بـ &#x2068;%1$s&#x2069;…</string>
+    <string name="pair_done">تم الاقتران بـ &#x2068;%1$s&#x2069;</string>
+    <string name="pair_failed_title">تعذّر الاقتران</string>
+    <string name="pair_failed_unreachable">تعذّر الاتصال بـ &#x2068;%1$s&#x2069; على العنوان &#x2066;%2$s&#x2069;. يجب أن يكون الجهازان على الشبكة نفسها أو متصلين عبر Tailscale. تأكد من أن جدار الحماية على الكمبيوتر يسمح باتصالات PhoneBox.</string>
+    <string name="pair_failed_code">لم يقبل &#x2068;%1$s&#x2069; الرمز. الرمز صالح لخمس دقائق ويُستخدم مرة واحدة. ابدأ الاقتران من جديد على الكمبيوتر.</string>
+    <string name="pair_failed_answer">ردّ &#x2068;%1$s&#x2069; بالرمز &#x2066;%2$d&#x2069;.</string>
+    <string name="pair_failed_certificate">شهادة الكمبيوتر مختلفة عن الشهادة المحددة في رمز QR. ابدأ الاقتران من جديد.</string>
+    <string name="ok">موافق</string>
+</resources>

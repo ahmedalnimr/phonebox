@@ -594,8 +594,8 @@ export function registerDeckWidget(type, title, mode = type) {
           else list.replaceChildren(...data.profiles.map(p => button(p.name, () => deckCommand('profile', { id: p.id })))); };
       } else if (mode === 'sleep') {
         let player = null; const caption = h('div', 'deck-caption');
-        box.append(button(`Sleep in ${o.minutes || 30} min`, () => deckCommand('sleep', { id: player?.id || '', value: o.minutes || 30 })),
-          button('Cancel timer', () => deckCommand('sleep', { id: player?.id || '', value: 0 })), caption);
+        box.append(button(tpv('Sleep in {n} min', { n: o.minutes || 30 }), () => deckCommand('sleep', { id: player?.id || '', value: o.minutes || 30 })),
+          button(tp('Cancel timer'), () => deckCommand('sleep', { id: player?.id || '', value: 0 })), caption);
         render = data => { player = selectedPlayer(data, o); const timer = data.sleep?.find(t => t.id === player?.id);
           caption.textContent = timer ? tpv('Pausing {player} in {n} min', { player: player?.name || tp('player'), n: Math.max(0, Math.ceil((timer.at - Date.now()) / 60000)) }) : t('w.noSleepTimer'); };
       } else if (mode === 'brightness') {
@@ -603,7 +603,7 @@ export function registerDeckWidget(type, title, mode = type) {
         render = data => {
           const items = (data.monitors || []).filter(m => !o.device || m.id === o.device);
           if (!items.length) { empty(list, t('w.noMonitors')); return; }
-          reconcile(list, items.map(m => { if (!rows.has(m.id)) { const s = slider(m.name + ' brightness', value => deckCommand('brightness', { id: m.id, value }));
+          reconcile(list, items.map(m => { if (!rows.has(m.id)) { const s = slider(tpv('{name} brightness', { name: m.name }), value => deckCommand('brightness', { id: m.id, value }));
             rows.set(m.id, { ...s, el: h('div', 'deck-channel', h('div', 'deck-channel-name', m.name), s.input, s.number) }); }
             const row = rows.get(m.id); row.input.disabled = m.brightness == null; row.set(m.brightness || 0); if (m.brightness == null) row.number.textContent = tp('DDC/CI unavailable'); return row.el; }));
         };
@@ -614,7 +614,12 @@ export function registerDeckWidget(type, title, mode = type) {
           if (loading || !alive || (!render && !component)) return;
           loading = true;
           try { const data = await deckState(); if (alive) { render?.(data); component?.render(data); box.classList.remove('deck-offline'); } }
-          catch (_) { if (alive) box.classList.add('deck-offline'); }
+          catch (_) {
+            if (alive) {
+              box.dataset.connectionError = tp('Computer connection unavailable');
+              box.classList.add('deck-offline');
+            }
+          }
           finally { loading = false; }
         },
         destroy() { alive = false; component?.destroy(); },

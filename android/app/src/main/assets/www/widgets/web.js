@@ -171,6 +171,7 @@ W.image = {
     box.append(img);
     if (o.caption) box.append(h('div', 'im-cap', o.caption));
     if (!/^https?:\/\//i.test(url)) { box.replaceChildren(h('div', 'empty', t('w.setImageUrl'))); return {}; }
+    box.dataset.imageError = tp('Image unavailable');
     img.onerror = () => box.classList.add('err');
     img.onload = () => box.classList.remove('err');
     const mins = Number(o.minutes) || 0;

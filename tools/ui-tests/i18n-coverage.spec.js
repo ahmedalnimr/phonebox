@@ -131,8 +131,8 @@ test('the settings page shows no English left in Vietnamese, with every section 
 });
 
 // Checked for every language with a complete widget/template catalog (CATALOG.<lang> covers every widgets.json and
-// templates.json string): today that is Vietnamese and Portuguese (Brazil).
-for (const lang of ['vi', 'pt-BR']) {
+// templates.json string).
+for (const lang of ['vi', 'pt-BR', 'ar']) {
 test(`every string in widgets.json and templates.json has a ${lang} catalog entry`, async ({ page }) => {
   await page.goto('/panel/');
   const out = await page.evaluate(async (lang) => {

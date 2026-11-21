@@ -97,8 +97,8 @@ test('every translated key is really translated, and the rest fall back to Engli
   expect(result.translated).toBe('Thêm widget');
 });
 
-// Vietnamese and Portuguese (Brazil) are the two languages with every en key translated, settings page included.
-for (const lang of ['vi', 'pt-BR']) {
+// These dictionaries cover settings-page keys as well as panel keys.
+for (const lang of ['vi', 'pt-BR', 'ar']) {
 test(`the ${lang} dictionary is complete`, async ({ page }) => {
   await page.goto('/panel/');
   const gaps = await page.evaluate((lang) => {
@@ -260,4 +260,36 @@ test('built-in English widget titles keep English capitals in a Turkish panel', 
   expect(await title(1)).toBe('STOPWATCH');
   // a title the user typed stays in the panel language
   expect(await title(2)).toBe('İÇECEK');
+});
+
+
+test('Arabic saves in an English browser, persists across reloads and keeps panel coordinates LTR', async ({ browser }) => {
+  const context = await browser.newContext({ locale: 'en-US' });
+  try {
+    const page = await context.newPage();
+    await page.goto('/settings/');
+    await page.locator('#langSel').selectOption('ar');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('#save')).toHaveText('حفظ');
+    await page.locator('#save').click();
+    await expect(page.locator('#save')).toBeDisabled();
+    await page.reload();
+    await expect(page.locator('#langSel')).toHaveValue('ar');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
+    await page.goto('/panel/');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('#pager')).toHaveCSS('direction', 'ltr');
+    await expect(page.locator('#pager .w').first()).toHaveCSS('direction', 'rtl');
+    await expect(page.locator('#pager canvas').first()).toHaveCSS('direction', 'ltr');
+
+    await page.goto('/settings/');
+    await page.locator('#langSel').selectOption('en');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+    await page.locator('#save').click();
+    await expect(page.locator('#save')).toBeDisabled();
+    await page.reload();
+    await expect(page.locator('#langSel')).toHaveValue('en');
+  } finally {
+    await context.close();
+  }
 });

@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -41,6 +42,7 @@ import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import org.json.JSONObject
+import java.util.Locale
 
 /**
  * Full-screen desk panel. The UI is plain HTML/JS bundled in assets/www.
@@ -51,6 +53,15 @@ import org.json.JSONObject
 class MainActivity : Activity(), SensorEventListener {
 
     private lateinit var web: WebView
+    private val uiPreferences by lazy { getSharedPreferences("panel_ui", MODE_PRIVATE) }
+
+    private fun dialogContext(): Context {
+        val language = uiPreferences.getString("language", "auto") ?: "auto"
+        if (language == "auto") return this
+        val tag = if (language == "ar") "ar-u-nu-latn" else language
+        val config = Configuration(resources.configuration).apply { setLocale(Locale.forLanguageTag(tag)) }
+        return createConfigurationContext(config)
+    }
     // Set first in onDestroy: dictation and stream callbacks already queued on the UI thread then skip the destroyed WebView.
     private var destroyed = false
     private val dictation by lazy { Dictation(this) { script -> if (!destroyed) web.evaluateJavascript(script, null) } }
@@ -136,33 +147,36 @@ class MainActivity : Activity(), SensorEventListener {
     private fun handlePairingLink(intent: Intent?) {
         val pairing = AgentLink.PairLink.parse(intent?.data) ?: return
         intent?.data = null // not again after a configuration change
+        val context = dialogContext()
         AlertDialog.Builder(this)
-            .setTitle(getString(R.string.pair_title))
-            .setMessage(getString(R.string.pair_message, pairing.pc, pairing.hosts.joinToString(), pairing.port, pairing.check))
-            .setPositiveButton(getString(R.string.pair_positive)) { _, _ -> pair(pairing) }
-            .setNegativeButton(getString(R.string.pair_negative), null)
+            .setTitle(context.getString(R.string.pair_title))
+            .setMessage(context.getString(R.string.pair_message, pairing.pc, pairing.hosts.joinToString(), pairing.port, pairing.check))
+            .setPositiveButton(context.getString(R.string.pair_positive)) { _, _ -> pair(pairing) }
+            .setNegativeButton(context.getString(R.string.pair_negative), null)
             .setOnDismissListener { hideSystemUi() }
             .show()
-            .plainButtons()
+            .localizeButtons(context)
     }
 
     /** Dialog buttons as written: the default all-caps follows the phone's language ("PAİR" on a Turkish phone). */
-    private fun AlertDialog.plainButtons(): AlertDialog = apply {
+    private fun AlertDialog.localizeButtons(localizedContext: Context): AlertDialog = apply {
+        window?.decorView?.layoutDirection = localizedContext.resources.configuration.layoutDirection
         listOf(AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE).forEach { getButton(it)?.isAllCaps = false }
     }
 
     private fun pair(pairing: AgentLink.PairLink) {
-        Toast.makeText(this, getString(R.string.pair_progress, pairing.pc), Toast.LENGTH_SHORT).show()
+        val context = dialogContext()
+        Toast.makeText(context, context.getString(R.string.pair_progress, pairing.pc), Toast.LENGTH_SHORT).show()
         Thread {
             val problem = link.claim(pairing)
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread // the pairing is stored; there is no window to show it in
                 if (problem == null) {
-                    Toast.makeText(this, getString(R.string.pair_done, pairing.pc), Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.pair_done, pairing.pc), Toast.LENGTH_LONG).show()
                     stream.stop(); if (resumed) stream.start(); web.reload()
                 } else {
-                    AlertDialog.Builder(this).setTitle(getString(R.string.pair_failed_title)).setMessage(problem.message(this))
-                        .setPositiveButton(getString(R.string.ok), null).setOnDismissListener { hideSystemUi() }.show().plainButtons()
+                    AlertDialog.Builder(this).setTitle(context.getString(R.string.pair_failed_title)).setMessage(problem.message(context))
+                        .setPositiveButton(context.getString(R.string.ok), null).setOnDismissListener { hideSystemUi() }.show().localizeButtons(context)
                 }
             }
         }.start()
@@ -307,11 +321,20 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun giveKey(view: WebView, url: String?) {
         if (!documentStartKey && url?.startsWith("https://$ASSET_HOST/") == true)
-            view.evaluateJavascript("window.__phoneboxKey='$bridgeKey';", null)
+            view.evaluateJavascript(
+                "window.__phoneboxKey='$bridgeKey';if(window.PhoneBoxI18n) window.PhoneBoxI18n.syncNativeLanguage();", null
+            )
     }
 
     inner class Bridge {
         private fun ok(key: String) = key == bridgeKey
+
+        @JavascriptInterface
+        fun setUiLanguage(key: String, language: String) {
+            if (!ok(key) || !language.matches(Regex("[a-z]{2}(-[A-Z]{2})?|auto"))) return
+            if (uiPreferences.getString("language", "auto") != language)
+                uiPreferences.edit().putString("language", language).apply()
+        }
 
         private val validTrackpadTypes = setOf("move", "click", "rightClick", "mousedown", "mouseup", "scroll", "hscroll") +
             // multi-finger gestures: three or four fingers swiping, four or five spreading or pinching (the agent follows the Mac's settings)

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PhoneBox Settings</title>
+<title data-i18n="s.windowTitle">PhoneBox Settings</title>
 <link rel="icon" href="/favicon.ico">
 <style>
 :root {
@@ -460,6 +460,14 @@ nav a.on::before { color: var(--accent); }
   .grid2 { grid-template-columns: 1fr; }
   .deck { --cols: 3 !important; }
 }
+/* Layout editor coordinates match the panel. Keep commands, paths and numeric input in reading order. */
+html[dir="rtl"] :is(.canvas, pre, code, .console-row textarea, table.items td.val,
+                     input[type="number"], input[type="range"], input[type="url"],
+                     input[data-bind$=".path"], input[data-bind$=".host"]) {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+html[dir="rtl"] .canvas > * { direction: rtl; }
 </style>
 </head>
 <body>
