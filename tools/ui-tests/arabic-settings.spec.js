@@ -58,13 +58,16 @@ test('shortcut display names and RTL reordering leave stored labels and commands
 test('Arabic rule presets and Webhooks examples preserve their technical values', async ({ page }) => {
   await openSettings(page, 'rules');
   await expect(page.locator('#rules h3').first()).toHaveText('إضافة قاعدة');
+  await expect(page.getByRole('button', { name: /بطارية الفأرة/ })).toBeVisible();
   await page.getByRole('button', { name: /تجاوز حد الاستخدام/ }).click();
   await expect(page.locator('#ruleList .rule').last().locator('input[type="number"]').filter({ visible: true }).first()).toHaveValue('80');
   await page.evaluate(() => { location.hash = 'webhooks'; });
   await expect(page.locator('#whExamples code').first()).toHaveCSS('direction', 'ltr');
   await expect(page.locator('#whExamples code').first()).toContainText('/api/push/temperature -d 21.5');
   await expect(page.locator('#whPush')).toContainText('إرسال قيمة تجريبية');
+  await expect(page.locator('#webhooks h3').first()).toHaveText('اختبار خطافات الويب');
   await expect(page.locator('#whItems')).toContainText('temperature');
+  await expect(page.locator('#whItems bdi').first()).toHaveCSS('direction', 'ltr');
   page.once('dialog', dialog => dialog.accept());
   await page.locator('#whClear').click();
   await expect(page.locator('#whItems')).toContainText('لم تُرسل أي قيم بعد');
@@ -142,7 +145,8 @@ test('Arabic panel keeps controls, measurements and signed temperatures in physi
         { id: 'net', type: 'stat', x: 4, y: 2, w: 4, h: 2, options: { metric: 'net' } },
         { id: 'gpu', type: 'gauge', x: 8, y: 2, w: 4, h: 2, options: { metric: 'gpu' } },
         { id: 'weather', type: 'weather', x: 0, y: 4, w: 6, h: 2 },
-        { id: 'meters', type: 'meters', x: 6, y: 4, w: 6, h: 2 },
+        { id: 'meters', type: 'meters', x: 6, y: 4, w: 3, h: 2 },
+        { id: 'calendar', type: 'calendar', x: 9, y: 4, w: 3, h: 2 },
       ] }],
     }));
   });
@@ -163,6 +167,10 @@ test('Arabic panel keeps controls, measurements and signed temperatures in physi
     '.w-stat .t-val', '.w-gauge .g-val', '.w-meters .track', '.w-meters .m-row span:last-child']) {
     await expect(page.locator(selector).first()).toHaveCSS('direction', 'ltr');
   }
+  await expect(page.locator('.w-gauge .g-label')).toHaveText('معالج الرسومات');
+  const weekdays = page.locator('.w-calendar .cal-h');
+  await expect(weekdays).toHaveText(['اث', 'ثل', 'أر', 'خم', 'جم', 'سب', 'أح']);
+  expect(await weekdays.evaluateAll(cells => cells.every(cell => cell.scrollWidth <= cell.clientWidth))).toBe(true);
   const weather = await page.evaluate(async () => {
     const main = await import('/panel/main.js');
     main.D.weather = { current: { weather_code: 0, is_day: 1, temperature_2m: -5, apparent_temperature: -7 },
