@@ -3,6 +3,9 @@ name: Arabic Windows test build
 on:
   push:
     branches: [test/arabic-windows-build]
+    paths-ignore:
+      - .github/workflows/arabic-android-build.yml
+      - .github/workflows/arabic-windows-build.yml
 
 permissions:
   contents: read

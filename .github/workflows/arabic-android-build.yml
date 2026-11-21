@@ -1,0 +1,38 @@
+name: Arabic Android test build
+
+on:
+  push:
+    branches: [test/arabic-windows-build]
+    paths:
+      - .github/workflows/arabic-android-build.yml
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: f241ad9502e44eab9dff8270f0f949eccbca39af
+          persist-credentials: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Build debug APK
+        working-directory: android
+        run: bash gradlew assembleDebug --no-daemon --console=plain
+      - name: Verify APK signature
+        run: |
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
+          "$apksigner" verify --print-certs android/app/build/outputs/apk/debug/app-debug.apk | tee apk-signature.txt
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: phonebox-arabic-android-f241ad9
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            apk-signature.txt
+          if-no-files-found: error
