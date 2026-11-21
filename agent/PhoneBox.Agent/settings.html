@@ -774,7 +774,7 @@ nav a.on::before { color: var(--accent); }
           <span data-i18n-html="s.battery.leadTail">where it comes from: a <b>smart plug in Home Assistant</b> (the phone on its own charger), or two <b>shortcuts</b>, for example
           <code>uhubctl</code> for a USB hub with switchable ports. Without USB power the panel keeps running over Wi-Fi.</span></p>
         <div class="row" style="margin-bottom:12px"><label class="switch"><input type="checkbox" data-bind="charge.enabled"><span></span></label> <span data-i18n="s.battery.keepBetween">Keep the battery between</span>
-          <input type="number" min="5" max="95" data-bind="charge.min" data-type="int" style="width:70px"> % and
+          <input type="number" min="5" max="95" data-bind="charge.min" data-type="int" style="width:70px"> % <span id="chargeRangeAnd">and</span>
           <input type="number" min="10" max="100" data-bind="charge.max" data-type="int" style="width:70px"> %</div>
         <div class="grid2">
           <div class="field"><label data-i18n="s.battery.method">Switch the power with</label><select data-bind="charge.method"><option value="ha" data-i18n="s.battery.methodHa">a Home Assistant switch (smart plug)</option><option value="shortcuts" data-i18n="s.battery.methodShortcuts">two shortcuts (power on / power off)</option></select></div>
@@ -3408,6 +3408,7 @@ function applyLanguageUi(langPref) {
   if ($('displayLangSel')) $('displayLangSel').value = I18n.getPref();
   I18n.applyDom();
   updateStageText();
+  $('chargeRangeAnd').textContent = tc('and');
   if ($('advancedVersionLabel')) $('advancedVersionLabel').textContent = tc('Version');
   document.querySelector('[data-bind="adbPath"]').placeholder = tc('auto-detected');
   fitLeads(); // translated intros can be shorter or longer than the old text
