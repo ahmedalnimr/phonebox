@@ -1413,17 +1413,24 @@ function setStage(mode) {
   $('canvas').hidden = live;
   $('previewBox').hidden = !live;
   $('pageEditor').classList.toggle('live', live);
-  $('stageHint').textContent = live
-    ? 'The real panel with your unsaved changes and live data: tap and swipe it like the phone. Switch back to Layout to move widgets.'
-    : '';
+  updateStageText();
   if (live && !previewFrame) {
-    previewFrame = h('iframe', { src: '../panel/?preview=1', title: 'Live preview of the panel' });
+    previewFrame = h('iframe', { src: '../panel/?preview=1' });
+    updateStageText();
     $('previewBox').appendChild(previewFrame);
     const fit = () => { previewFrame.style.transform = `scale(${$('previewBox').clientWidth / 780})`; };
     new ResizeObserver(fit).observe($('previewBox'));
     fit();
   }
   if (live) queuePreview();
+}
+
+function updateStageText() {
+  const translate = window.PhoneBoxI18n.tc;
+  $('stageHint').textContent = stageMode === 'live'
+    ? translate('The real panel with your unsaved changes and live data: tap and swipe it like the phone. Switch back to Layout to move widgets.')
+    : '';
+  if (previewFrame) previewFrame.title = translate('Live preview of the panel');
 }
 
 function sendPreview() {
@@ -3360,6 +3367,7 @@ function applyLanguageUi(langPref) {
   if ($('langSel')) $('langSel').value = I18n.getPref();
   if ($('displayLangSel')) $('displayLangSel').value = I18n.getPref();
   I18n.applyDom();
+  updateStageText();
   fitLeads(); // translated intros can be shorter or longer than the old text
 }
 
