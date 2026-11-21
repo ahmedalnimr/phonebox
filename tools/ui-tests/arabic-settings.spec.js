@@ -64,6 +64,9 @@ test('Arabic rule presets and Webhooks examples preserve their technical values'
   await expect(page.locator('#whExamples code').first()).toHaveCSS('direction', 'ltr');
   await expect(page.locator('#whExamples code').first()).toContainText('/api/push/temperature -d 21.5');
   await expect(page.locator('#whPush')).toContainText('إرسال قيمة تجريبية');
+  await expect(page.locator('#whItems')).toContainText('temperature');
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#whClear').click();
   await expect(page.locator('#whItems')).toContainText('لم تُرسل أي قيم بعد');
   await page.locator('#whPush').click();
   await expect(page.locator('#whItems')).toContainText('demo');
@@ -108,6 +111,22 @@ test('Advanced JSON has LTR editing, scroll and unchanged Arabic string values',
   await page.locator('#applyJson').click();
   await expect(page.locator('#save')).toBeEnabled();
   expect(JSON.parse(await editor.inputValue()).weather.city).toBe(cfg.weather.city);
+  await editor.fill('{');
+  await page.locator('#applyJson').click();
+  await expect(page.locator('#jsonErr')).toHaveText('صيغة JSON غير صالحة.');
+  const download = page.waitForEvent('download');
+  await page.locator('#downloadJson').click();
+  expect((await download).suggestedFilename()).toMatch(/^phonebox-settings.*\.json$/);
+  cfg.weather.city = 'مدينة تجريبية';
+  const chooser = page.waitForEvent('filechooser');
+  await page.locator('#uploadJson').click();
+  page.once('dialog', dialog => dialog.accept());
+  await (await chooser).setFiles({ name: 'demo.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(cfg)) });
+  await expect(page.locator('#jsonErr')).toBeEmpty();
+  await expect(editor).toHaveValue(/مدينة تجريبية/);
+  await page.locator('#save').click();
+  await expect(page.locator('#save')).toBeDisabled();
+  expect(await page.evaluate(async () => (await (await fetch('/api/settings')).json()).weather.city)).toBe(cfg.weather.city);
 });
 
 test('Arabic panel keeps controls, measurements and signed temperatures in physical order', async ({ page }) => {
