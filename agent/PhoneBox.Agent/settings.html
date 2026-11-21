@@ -2591,9 +2591,9 @@ function ruleCard(r, i) {
       }
       set('op', v === 'on' ? null : v, true);
     }),
-    r.op === 'stale' ? h('input', { type: 'number', min: 1, max: 86400, style: 'width:90px', value: r.arg ?? '60', oninput: (e) => set('arg', e.target.value || null) }) : r.op ? text('arg', 'value', '') : null,
+    r.op === 'stale' ? h('input', { type: 'number', min: 1, max: 86400, style: 'width:90px', value: r.arg ?? '60', oninput: (e) => set('arg', e.target.value || null) }) : r.op ? text('arg', tl('value'), '') : null,
     r.op === 'stale' ? h('span', { class: 'hint' }, tl('seconds')) : null);
-  if (trig.value) cond.push(h('input', { type: 'number', min: 0, style: 'width:90px', value: r.value ?? trig.def, oninput: (e) => set('value', e.target.value === '' ? null : +e.target.value) }), h('span', { class: 'hint' }, trig.value));
+  if (trig.value) cond.push(h('input', { type: 'number', min: 0, style: 'width:90px', value: r.value ?? trig.def, oninput: (e) => set('value', e.target.value === '' ? null : +e.target.value) }), h('span', { class: 'hint' }, tl(trig.value)));
 
   const act = [];
   if (r.then === 'goto') act.push(h('select', { onchange: (e) => set('page', e.target.value) },
@@ -2763,6 +2763,32 @@ function dragSort(el, arr, done) {
 }
 
 // ---------------------------------------------------------------- shortcuts
+// Translate only a shipped shortcut's unchanged signature. The editor and config keep the stored name.
+const BUILT_IN_SHORTCUT_LABELS = [
+  ["browser", "Browser", "https://github.com", ""],
+  ["calc", "Calculator", "calc.exe", ""],
+  ["calc", "Calculator", "gnome-calculator", ""],
+  ["calc", "Calculator", "open", "-a Calculator"],
+  ["explorer", "Files", "explorer.exe", ""],
+  ["files", "Files", "xdg-open", "~"],
+  ["lock", "Lock", "builtin:lock", ""],
+  ["settings", "Settings", "gnome-control-center", ""],
+  ["settings", "Settings", "ms-settings:", ""],
+  ["settings", "Settings", "open", "-a \"System Settings\""],
+  ["snip", "Snip", "ms-screenclip:", ""],
+  ["taskmgr", "Task Manager", "taskmgr.exe", ""],
+  ["terminal", "Terminal", "open", "-a Terminal"],
+  ["terminal", "Terminal", "wt.exe", ""],
+  ["terminal", "Terminal", "x-terminal-emulator", ""],
+];
+function shortcutDisplayLabel(shortcut) {
+  const { id, label, cmd, args } = shortcut;
+  if (window.PhoneBoxI18n.getLang() === 'ar' &&
+      BUILT_IN_SHORTCUT_LABELS.some(([key, name, command, parameters]) =>
+        key === id && name === label && command === cmd && parameters === (args || ''))) return tc(label);
+  return label;
+}
+
 function renderDeck() {
   const deck = $('deck');
   deck.style.setProperty('--cols', deckCols());
@@ -2770,7 +2796,7 @@ function renderDeck() {
   cfg.shortcuts.forEach((s, i) => {
     const k = h('div', { class: 'key' + (i === selKey ? ' sel' : ''), draggable: 'true', 'data-i': i, style: { '--k': s.color || '#6b7280' },
       onclick: () => { selKey = i; renderDeck(); } },
-      h('span', { class: 'ki' }, rich(s.icon || '•')), h('span', { class: 'kl' }, s.label || '(untitled)'));
+      h('span', { class: 'ki' }, rich(s.icon || '•')), h('span', { class: 'kl' }, shortcutDisplayLabel(s) || '(untitled)'));
     k.style.setProperty('--k', s.color || '#6b7280');
     dragSort(k, cfg.shortcuts, (from, to) => { selKey = to; renderDeck(); changed(); });
     deck.append(k);
@@ -2814,17 +2840,17 @@ function renderEditor() {
       h('div', { class: 'row', style: { gap: '6px' } },
         h('button', { class: 'btn sm', onclick: () => moveKey(-1), disabled: selKey === 0 }, t('s.js.earlier')),
         h('button', { class: 'btn sm', onclick: () => moveKey(1), disabled: selKey === cfg.shortcuts.length - 1 }, t('s.js.later')),
-        h('button', { class: 'btn sm', onclick: testKey }, icon('play', 'm'), 'Test'),
-        h('button', { class: 'btn sm danger', onclick: delKey }, 'Delete'))),
+        h('button', { class: 'btn sm', onclick: testKey }, icon('play', 'm'), t('s.test')),
+        h('button', { class: 'btn sm danger', onclick: delKey }, t('s.js.remove')))),
     h('div', { class: 'grid2' },
       h('div', {},
         text('label', t('s.k.label'), t('s.k.labelHint')),
-        h('div', { class: 'field' }, h('label', {}, t('s.z.iconEmoji')), h('div', { class: 'row' }, iconIn),
+        h('div', { class: 'field' }, h('label', {}, tc('Emoji')), h('div', { class: 'row' }, iconIn),
           h('div', { class: 'emojis' }, ...EMOJIS.map((em) => h('button', { 'data-emoji': em, title: em, 'aria-label': em, onclick: () => { iconIn.value = em; upd('icon', em); } }, rich(em))))),
         customIconField(s),
         h('div', { class: 'field' }, h('label', {}, t('s.z.colour')), h('div', { class: 'row' }, colorIn), sw)),
       h('div', {}, ...actionFields(s, upd, text, cmdIn, preset),
-        h('div', { class: 'field' }, h('label', {}, 'Id'), h('code', {}, s.id || t('s.k.genOnSave'))))));
+        h('div', { class: 'field' }, h('label', {}, tc('Id')), s.id ? h('code', {}, s.id) : h('span', { class: 'hint' }, t('s.k.genOnSave'))))));
 }
 
 // A custom icon image (PNG, WEBP or SVG) overrides both the emoji and the auto-detected program icon on the phone.
@@ -2912,9 +2938,9 @@ function actionFields(s, upd, text, cmdIn, preset) {
       text('args', t('s.k.arguments'), osName === 'windows' ? t('s.k.argsPlaceholderWindows') : t('s.k.argsPlaceholderUnix')),
       text('cwd', t('s.k.workingFolder'), t('s.k.optional')));
   } else if (kind === 'keys') {
-    fields.push(text('args', t('s.k.keys'), 'e.g. ctrl+shift+m', 'Combine with +, several in a row with commas. Ctrl, Shift, Alt, Win (Cmd on a Mac), letters, digits, F1–F24, enter, tab, esc, space, arrows, home, end, pageup, pagedown, delete, numpad0–numpad9, numpadenter, numpadadd, numpadsubtract, numpadmultiply, numpaddivide, numpaddecimal, playpause, next, prev, mute, volumeup, volumedown.'));
+    fields.push(text('args', t('s.k.keys'), 'e.g. ctrl+shift+m', tc('Combine with +, several in a row with commas. Ctrl, Shift, Alt, Win (Cmd on a Mac), letters, digits, F1–F24, enter, tab, esc, space, arrows, home, end, pageup, pagedown, delete, numpad0–numpad9, numpadenter, numpadadd, numpadsubtract, numpadmultiply, numpaddivide, numpaddecimal, playpause, next, prev, mute, volumeup, volumedown.')));
   } else if (kind === 'text') {
-    fields.push(h('div', { class: 'field' }, h('label', {}, t('s.k.textToType')), area(s.args || '', 'Typed into whatever window has the focus', 3, (e) => upd('args', e.target.value, false)),
+    fields.push(h('div', { class: 'field' }, h('label', {}, t('s.k.textToType')), area(s.args || '', tc('Typed into whatever window has the focus'), 3, (e) => upd('args', e.target.value, false)),
       h('span', { class: 'hint' }, t('s.k.textHint')), h('span', { class: 'hint' }, t('s.k.clipboardWarn'))));
   } else if (kind === 'cycle') {
     // each tap runs the next key of the list; the key on the phone shows the one that ran last
@@ -2922,7 +2948,7 @@ function actionFields(s, upd, text, cmdIn, preset) {
     const rows = (s.cycle ??= []).map((id, i) => h('div', { class: 'row', style: { alignItems: 'center', gap: '8px', marginBottom: '6px' } },
       h('span', { class: 'hint' }, (i + 1) + '.'),
       h('select', { onchange: (e) => { s.cycle[i] = e.target.value; changed(); } },
-        ...choices.map((o) => h('option', { value: o.id, selected: o.id === id }, o.label || o.id))),
+        ...choices.map((o) => h('option', { value: o.id, selected: o.id === id }, shortcutDisplayLabel(o) || o.id))),
       h('button', { class: 'btn sm', type: 'button', 'aria-label': t('s.k.remove'), onclick: () => { s.cycle.splice(i, 1); changed(); renderEditor(); } }, '×')));
     fields.push(h('div', { class: 'field' }, h('label', {}, t('s.k.cycleKeys')), ...rows,
       h('button', { class: 'btn sm', type: 'button', disabled: !choices.length || s.cycle.length >= 20, onclick: () => { s.cycle.push(choices[0].id); changed(); renderEditor(); } }, t('s.k.cycleAdd')),
@@ -2942,7 +2968,7 @@ function actionFields(s, upd, text, cmdIn, preset) {
     isMute ? t('s.k.toggleLabelMute') : t('s.k.toggleLabel')));
   if (s.toggle && !isMute) {
     fields.push(text('stateKey', t('s.k.stateKey'), 'e.g. teams-muted',
-      'A value pushed to /api/push/<key> (true / on / 1 = on). Without it the phone shows the state after each tap.'));
+      tc('A value pushed to /api/push/<key> (true / on / 1 = on). Without it the phone shows the state after each tap.')));
     if (kind === 'run') fields.push(text('offCmd', t('s.cd.offCmdPlaceholder'), t('s.cd.offCmdHint')), text('offArgs', t('s.k.offArgs'), ''));
   }
   // holding the key on the phone runs another key (a key that was never saved has no id to point at yet)
@@ -2950,7 +2976,7 @@ function actionFields(s, upd, text, cmdIn, preset) {
   fields.push(h('div', { class: 'field' }, h('label', {}, t('s.k.longPress')),
     h('select', { onchange: (e) => { s.longPress = e.target.value || null; changed(); } },
       h('option', { value: '' }, t('s.k.longPressNone')),
-      ...others.map((o) => h('option', { value: o.id, selected: o.id === s.longPress }, o.label || o.id))),
+      ...others.map((o) => h('option', { value: o.id, selected: o.id === s.longPress }, shortcutDisplayLabel(o) || o.id))),
     h('span', { class: 'hint' }, t('s.k.longPressHint'))));
   return fields;
 }
@@ -2962,7 +2988,7 @@ function renderDeckKeysOnly() {
     if (!k) return;
     k.style.setProperty('--k', s.color || '#6b7280');
     k.querySelector('.ki').replaceChildren(rich(s.icon || '•'));
-    k.querySelector('.kl').textContent = s.label || '(untitled)';
+    k.querySelector('.kl').textContent = shortcutDisplayLabel(s) || '(untitled)';
   });
 }
 function moveKey(d) {
@@ -3368,6 +3394,8 @@ function applyLanguageUi(langPref) {
   if ($('displayLangSel')) $('displayLangSel').value = I18n.getPref();
   I18n.applyDom();
   updateStageText();
+  if ($('advancedVersionLabel')) $('advancedVersionLabel').textContent = tc('Version');
+  document.querySelector('[data-bind="adbPath"]').placeholder = tc('auto-detected');
   fitLeads(); // translated intros can be shorter or longer than the old text
 }
 
@@ -3522,7 +3550,7 @@ async function loadInfo() {
     }
     $('codexHookTrust').style.display = codexHook.installed ? '' : 'none';
     $('info').replaceChildren(
-      h('dt', {}, 'Version'), h('dd', {}, i.version),
+      h('dt', { id: 'advancedVersionLabel' }, tc('Version')), h('dd', {}, i.version),
       h('dt', {}, t('s.adv.settingsFile')), h('dd', {}, h('code', {}, i.configPath)),
       h('dt', {}, t('s.adv.log')), h('dd', {}, h('code', {}, i.logPath)),
       h('dt', {}, 'adb'), h('dd', {}, i.adb || '—'));
