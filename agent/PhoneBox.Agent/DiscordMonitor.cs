@@ -32,7 +32,7 @@ public sealed partial class DiscordMonitor(ConfigStore config, ILogger<DiscordMo
     private readonly List<DiscordNotification> _notes = [];
     internal readonly ConcurrentDictionary<string, TaskCompletionSource<JsonNode?>> _pending = new(); // internal for tests
     private readonly SemaphoreSlim _send = new(1, 1);
-    private Stream? _io;
+    internal Stream? _io; // internal for tests
 
     private static DiscordSnapshot Empty(string? error) => new(false, error, null, false, false, null, null, null, [], [], []);
 
@@ -74,6 +74,31 @@ public sealed partial class DiscordMonitor(ConfigStore config, ILogger<DiscordMo
     {
         get { lock (_lock) return _speakingChannel; }
         set { lock (_lock) { _speakingChannel = value; _speaking.Clear(); } }
+    }
+
+    /// <summary>
+    /// Moves the speaking subscriptions (covered by the rpc.voice.read scope) from the channel you were in to the one you
+    /// are in now, or sets them up again after a failure. No speaking event counts until both SPEAKING_START and
+    /// SPEAKING_STOP are in place: a START from the old channel, or one that arrives while only START is subscribed,
+    /// could leave a ring on that no STOP clears. False when Discord refused or didn't answer.
+    /// </summary>
+    internal async Task<bool> FollowSpeaking(string? from, string? to, CancellationToken ct)
+    {
+        SpeakingChannel = null;
+        try
+        {
+            if (from is not null)
+                foreach (var e in SpeakingEvents) await Request("UNSUBSCRIBE", new JsonObject { ["channel_id"] = from }, e, ct);
+            if (to is not null)
+                foreach (var e in SpeakingEvents) await Request("SUBSCRIBE", new JsonObject { ["channel_id"] = to }, e, ct);
+            SpeakingChannel = to;
+            return true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            log.LogDebug("discord: speaking events: {Msg}", ex.Message);
+            return false;
+        }
     }
 
     internal void ApplySpeaking(string evt, JsonNode? data)
@@ -176,25 +201,9 @@ public sealed partial class DiscordMonitor(ConfigStore config, ILogger<DiscordMo
                 var selId = sel?["id"]?.GetValue<string>();
                 if (selId != speakingFor || (speakingRetryAt != 0 && Environment.TickCount64 >= speakingRetryAt))
                 {
-                    // speaking events are per channel: follow the channel you are in (covered by the rpc.voice.read scope)
-                    // A failure only costs the rings for this channel and the rest of the widget keeps working. Half a
-                    // subscription (START without STOP) would leave a ring on, so after a failure the channel's two
-                    // subscriptions are set up again from scratch, at most every 30 s.
-                    SpeakingChannel = selId;
-                    speakingRetryAt = 0;
-                    try
-                    {
-                        if (speakingFor is not null)
-                            foreach (var e in SpeakingEvents) await Request("UNSUBSCRIBE", new JsonObject { ["channel_id"] = speakingFor }, e, ct);
-                        if (selId is not null)
-                            foreach (var e in SpeakingEvents) await Request("SUBSCRIBE", new JsonObject { ["channel_id"] = selId }, e, ct);
-                    }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
-                    {
-                        log.LogDebug("discord: speaking events: {Msg}", ex.Message);
-                        SpeakingChannel = null; // no rings until both subscriptions are in place
-                        speakingRetryAt = Environment.TickCount64 + 30_000;
-                    }
+                    // A failure only costs the rings for this channel and the rest of the widget keeps working; the
+                    // channel's two subscriptions are set up again from scratch, at most every 30 s.
+                    speakingRetryAt = await FollowSpeaking(speakingFor, selId, ct) ? 0 : Environment.TickCount64 + 30_000;
                     speakingFor = selId;
                 }
                 var members = sel?["voice_states"]?.AsArray().Select(v => new DiscordMember(
