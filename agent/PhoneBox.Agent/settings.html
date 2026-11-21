@@ -1392,7 +1392,7 @@ function renderPageEditor() {
           icon('home', 'm'), isHome(p) ? t('s.js.homePage') : t('s.js.makeHome')),
         h('label', { class: 'hint', title: t('s.js.backHomeAfterHint') }, t('s.js.backHomeAfter'),
           h('select', { onchange: (e) => { p.idleSec = e.target.value === '' ? null : +e.target.value; changed(); } },
-            ...[['', `default (${fmtIdle(cfg.display.idleReturnSec ?? 90)})`], ['0', 'never'], ['30', '30 s'], ['60', '1 min'], ['120', '2 min'], ['300', '5 min'], ['900', '15 min'], ['3600', '1 hour']]
+            ...[['', `${tc('default')} (${fmtIdle(cfg.display.idleReturnSec ?? 90)})`], ['0', tc('never')], ['30', '30 s'], ['60', '1 min'], ['120', '2 min'], ['300', '5 min'], ['900', '15 min'], ['3600', '1 hour']]
               .map(([v, l]) => h('option', { value: v, selected: String(p.idleSec ?? '') === v }, l)))),
         h('button', { class: 'btn sm danger', disabled: cfg.pages.length === 1, onclick: () => {
           if (!confirm(t('s.js.deletePageConfirm', { title: p.title }))) return;
@@ -2626,7 +2626,7 @@ function ruleCard(r, i) {
       const cur = days.length ? days : DAYS.map(([x]) => x);
       const next = cur.includes(d) ? cur.filter((x) => x !== d) : [...cur, d];
       set('days', next.length === 7 || !next.length ? null : DAYS.map(([x]) => x).filter((x) => next.includes(x)).join(','), true);
-    } }, l)));
+    } }, tl(l))));
   const opts = h('details', { class: 'ropts', open: !!(r.days || r.during || r.forSec || r.cooldownMin || (r.priority ?? 5) !== 5 || r.countdownSec != null) },
     h('summary', {}, t('s.r.options'), h('span', { class: 'hint' }, ' ' + ruleSummary(r))),
     h('div', { class: 'line' }, h('b', {}, t('s.r.only')), dayBtns, h('span', { class: 'hint' }, t('s.r.between')), text('during', t('s.r.allDay'))),
@@ -2656,7 +2656,7 @@ function ruleCard(r, i) {
 
 function ruleSummary(r) {
   const parts = [];
-  if (r.days) parts.push(r.days.split(',').map((d) => d[0].toUpperCase() + d.slice(1, 2)).join(' '));
+  if (r.days) parts.push(r.days.split(',').map(d => tl(DAYS.find(([id]) => id === d)?.[1] || d)).join(' '));
   if (r.during) parts.push(r.during);
   if (r.forSec) parts.push(t('s.r.afterSec', { n: r.forSec }));
   if (r.cooldownMin) parts.push(t('s.r.restMin', { n: r.cooldownMin }));
