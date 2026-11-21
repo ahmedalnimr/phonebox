@@ -382,6 +382,25 @@ test('the shortcut delete button is localized in Arabic without changing its Eng
   await page.locator('#deck .key:not(.add)').first().click();
   const deleteButton = page.locator('#editor button.danger');
   await expect(deleteButton).toHaveAccessibleName('Delete');
+  const shortcut = page.locator('#deck .key:not(.add) .kl').first();
+  const label = await shortcut.textContent();
   await page.locator('#langSel').selectOption('ar');
   await expect(deleteButton).toHaveAccessibleName('حذف');
+  await expect(shortcut).toHaveText(label);
+  await page.evaluate(() => { location.hash = '#webhooks'; });
+  const pushedDelete = page.locator('#whItems button').first();
+  await expect(pushedDelete).toHaveAccessibleName('حذف');
+  await page.locator('#langSel').selectOption('en');
+  await expect(pushedDelete).toHaveAccessibleName('Delete');
 });
+
+for (const language of ['ar', 'de']) {
+  test(`the calendar uses localized Monday-first weekday headings (${language})`, async ({ page }) => {
+    await show(page, [{ id: 'calendar', type: 'calendar', x: 0, y: 0, w: 4, h: 4 }], { language });
+    const headings = await page.evaluate(() => {
+      const formatter = new Intl.DateTimeFormat(window.PhoneBoxI18n.getLocale(), { weekday: 'narrow' });
+      return Array.from({ length: 7 }, (_, i) => formatter.format(new Date(2024, 0, i + 1)));
+    });
+    await expect(page.locator('.w-calendar .cal-h')).toHaveText(headings);
+  });
+}

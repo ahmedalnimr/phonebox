@@ -488,7 +488,7 @@ window.PhoneBoxLocaleData = Object.assign(window.PhoneBoxLocaleData || {}, {
       "wx.thunderstorm": "عاصفة رعدية",
       "wx.thunderstormHail": "عاصفة رعدية مع برد",
       "wx.severeHail": "برد شديد",
-      "wx.feelsLike": "الإحساس {deg}°",
+      "wx.feelsLike": "المحسوسة: {deg}°",
       "status.waitingCount": "{n} في انتظار",
       "status.updateUsb": "⬆ {version}: أدخل USB للتحديث",
       "status.updateAvailable": "⬆ {version} متاحة",
