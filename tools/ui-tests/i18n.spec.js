@@ -2,16 +2,16 @@
 // that compared a localized label against the English word. Against the web demo, in German.
 const { test, expect } = require('@playwright/test');
 
-async function show(page, widgets) {
+async function show(page, widgets, display = { language: 'de' }) {
   await page.goto('/panel/');
-  await page.evaluate((widgets) => {
+  await page.evaluate(({ widgets, display }) => {
     localStorage.clear();
     localStorage.setItem('pb-demo-config', JSON.stringify({
       night: { enabled: false }, rules: [], shortcuts: [],
-      display: { language: 'de' },
+      display,
       pages: [{ id: 'one', title: 'One', widgets }],
     }));
-  }, widgets);
+  }, { widgets, display });
   await page.reload();
 }
 
@@ -347,4 +347,18 @@ test('follow system distinguishes Traditional Chinese and the legacy Indonesian 
     });
   });
   expect(resolved).toEqual(['zh-Hant', 'zh-Hant', 'zh', 'id', 'en', 'en']);
+});
+
+
+test('the idle media widget uses the Arabic no-audio label', async ({ page }) => {
+  await show(page, [{ id: 'media', type: 'media', x: 0, y: 0, w: 8, h: 4, options: {} }], { language: 'ar' });
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
+  await expect(page.locator('.w-media')).toBeVisible();
+  const label = await page.evaluate(async () => {
+    const main = await import('/panel/main.js');
+    main.D.state = { ...main.D.state, media: null };
+    main.emit('state');
+    return document.querySelector('.w-media .m-title').textContent;
+  });
+  expect(label).toBe('لا يوجد صوت');
 });
