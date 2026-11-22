@@ -393,9 +393,16 @@ for (const [language, direction, periods] of [['ar', 'rtl', ['ص', 'م']], ['en'
         const center = (rect) => (rect.left + rect.right) / 2;
         const expected = center(box.getBoundingClientRect());
         return Object.fromEntries(['.status', '.clock', '.wx'].map(selector => {
-          const children = [...box.querySelector(selector).children].filter(child => child.getClientRects().length);
+          const row = box.querySelector(selector);
+          const children = [...row.children].filter(child => child.getClientRects().length);
           const rects = children.map(child => child.getBoundingClientRect());
           const content = { left: Math.min(...rects.map(rect => rect.left)), right: Math.max(...rects.map(rect => rect.right)) };
+          if (selector === '.status') {
+            // The status row clips overflow. Measure the part the browser actually shows.
+            const clip = row.getBoundingClientRect();
+            content.left = Math.max(content.left, clip.left);
+            content.right = Math.min(content.right, clip.right);
+          }
           return [selector, Math.abs(center(content) - expected)];
         }));
       });
