@@ -350,6 +350,36 @@ test('follow system distinguishes Traditional Chinese and the legacy Indonesian 
 });
 
 
+for (const [language, direction, periods] of [['ar', 'rtl', ['ص', 'م']], ['en', 'ltr', ['AM', 'PM']]]) {
+  test(`the clock is centered and keeps time in order (${language})`, async ({ page }) => {
+    await show(page, [{ id: 'clock', type: 'clock', x: 0, y: 0, w: 9, h: 4,
+      options: { status: false, weather: false } }], { language, hour12: true });
+    const clock = page.locator('.w-clock .clock');
+    const date = page.locator('.w-clock .date');
+
+    for (const [index, hour] of [10, 22].entries()) {
+      const time = await page.evaluate((hour) => new Date(2026, 0, 1, hour, 24, 35).getTime(), hour);
+      await page.clock.setFixedTime(time);
+      await page.evaluate(async () => (await import('/panel/main.js')).tick());
+      await expect(clock.locator('span')).toHaveText(['10', ':', '24', '35', periods[index]]);
+      await expect(page.locator('#nClock')).toHaveText(`10:24 ${periods[index]}`);
+      const { left, right, midpoint, ordered } = await clock.evaluate((row) => {
+        const { left, right } = row.getBoundingClientRect();
+        const parts = [...row.children].map((part) => part.getBoundingClientRect());
+        return { left, right, midpoint: (parts[0].left + parts.at(-1).right) / 2,
+          ordered: parts.every((part, i) => i === 0 || part.left >= parts[i - 1].right - 1) };
+      });
+      expect(ordered).toBe(true);
+      expect(Math.abs(midpoint - (left + right) / 2)).toBeLessThan(2);
+    }
+
+    await expect(date).toHaveCSS('direction', direction);
+    await expect(date).toHaveText(language === 'ar' ? /يناير/ : /January/);
+    await expect(page.locator('#nClock')).toHaveCSS('direction', 'ltr');
+    await expect(page.locator('#nDate')).toHaveCSS('direction', direction);
+  });
+}
+
 test('the idle media widget uses the Arabic no-audio label', async ({ page }) => {
   await show(page, [{ id: 'media', type: 'media', x: 0, y: 0, w: 8, h: 4, options: {} }], { language: 'ar' });
   await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
