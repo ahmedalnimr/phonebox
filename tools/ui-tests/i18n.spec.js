@@ -352,8 +352,18 @@ test('follow system distinguishes Traditional Chinese and the legacy Indonesian 
 
 for (const [language, direction, periods] of [['ar', 'rtl', ['ص', 'م']], ['en', 'ltr', ['AM', 'PM']]]) {
   test(`the clock is centered and keeps time in order (${language})`, async ({ page }) => {
-    await show(page, [{ id: 'clock', type: 'clock', x: 0, y: 0, w: 9, h: 4,
-      options: { status: false, weather: false } }], { language, hour12: true });
+    await show(page, [
+      { id: 'clock', type: 'clock', x: 0, y: 0, w: 6, h: 4 },
+      { id: 'media', type: 'media', x: 6, y: 0, w: 6, h: 4 },
+    ], { language, hour12: true });
+    await page.evaluate(async () => {
+      const main = await import('/panel/main.js');
+      main.D.state = { ...main.D.state, host: 'Test PC' };
+      main.D.weather = { current: { weather_code: 0, is_day: 1, temperature_2m: 16,
+        apparent_temperature: 15 }, daily: { temperature_2m_max: [19], temperature_2m_min: [11] } };
+      main.emit('state');
+      main.emit('weather');
+    });
     const clock = page.locator('.w-clock .clock');
     const date = page.locator('.w-clock .date');
 
@@ -371,6 +381,31 @@ for (const [language, direction, periods] of [['ar', 'rtl', ['ص', 'م']], ['en'
       });
       expect(ordered).toBe(true);
       expect(Math.abs(midpoint - (left + right) / 2)).toBeLessThan(2);
+    }
+
+    const widget = page.locator('.w-clock');
+    await expect(widget.locator('.status')).toContainText('Test PC');
+    await expect(widget.locator('.wx-temp')).toHaveText('16°');
+    await expect(widget.locator('.wx-icon svg')).toBeVisible();
+    await expect(widget.locator('.wx-desc')).not.toBeEmpty();
+    await expect(widget.locator('.wx-range')).toContainText('15');
+    for (const width of [1000, 600]) {
+      await page.setViewportSize({ width, height: 420 });
+      await page.evaluate(async () => (await import('/panel/main.js')).emit('state'));
+      await expect(widget.locator('.status')).toContainText('Test PC');
+      const centers = await widget.evaluate((box) => {
+        const center = (rect) => (rect.left + rect.right) / 2;
+        const expected = center(box.getBoundingClientRect());
+        return ['.status', '.clock', '.date', '.wx'].map(selector => {
+          const range = document.createRange();
+          range.selectNodeContents(box.querySelector(selector));
+          return Math.abs(center(range.getBoundingClientRect()) - expected);
+        });
+      });
+      for (const offset of centers) expect(offset, `viewport ${width}`).toBeLessThan(2);
+      const bounds = await widget.boundingBox();
+      const media = await page.locator('.w-media').boundingBox();
+      expect(media.x).toBeGreaterThanOrEqual(bounds.x + bounds.width - 1);
     }
 
     await expect(date).toHaveCSS('direction', direction);
