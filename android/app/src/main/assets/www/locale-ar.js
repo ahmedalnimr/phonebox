@@ -1464,7 +1464,7 @@ window.PhoneBoxLocaleData = Object.assign(window.PhoneBoxLocaleData || {}, {
       "Start, stop and save replay buffer.": "بدء، إيقاف وحفظ إعادة التشغيل.",
       "Status": "الحالة",
       "Align": "المحاذاة",
-      "Left": "إلى اليسار",
+      "Start": "بداية السطر",
       "Center": "توسيط",
       "Status line (PC, battery, quotas)": "خط الحالة (الحاسوب الشخصي، البطارية، الحصص)",
       "Steam friend activity": "Steam نشاط صديق",

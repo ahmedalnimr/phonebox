@@ -1221,7 +1221,11 @@ function deckCols() {
   return 4;
 }
 
-function optVal(w, o) { return w.options && o.key in w.options ? w.options[o.key] : o.default; }
+function optVal(w, o) {
+  const value = w.options && o.key in w.options ? w.options[o.key] : o.default;
+  // The previous Clock alignment value is an alias for the logical start.
+  return w.type === 'clock' && o.key === 'align' && value === 'left' ? 'start' : value;
+}
 /** An option with showWhen {key, not} is drawn only while the widget's option <key> is not set to <not> (an option that does nothing while another is off is not offered). */
 function optionShown(w, d, o) {
   if (!o.showWhen) return true;

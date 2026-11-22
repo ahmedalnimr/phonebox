@@ -420,24 +420,45 @@ for (const [language, direction, periods] of [['ar', 'rtl', ['ص', 'م']], ['en'
   });
 }
 
-test('legacy clocks and explicit left align the time left while keeping locale periods', async ({ page }) => {
-  await page.clock.setFixedTime(new Date(2026, 0, 1, 22, 24, 35));
-  await show(page, [
-    { id: 'legacy', type: 'clock', x: 0, y: 0, w: 6, h: 4, options: { status: false, weather: false } },
-    { id: 'left', type: 'clock', x: 6, y: 0, w: 6, h: 4, options: { status: false, weather: false, align: 'left' } },
-  ], { language: 'ar', hour12: true });
-  const widgets = page.locator('.w-clock');
-  await expect(widgets).toHaveCount(2);
-  for (const widget of await widgets.all()) {
-    await expect(widget).not.toHaveClass(/clock-centered/);
-    await expect(widget.locator('.clock span')).toHaveText(['10', ':', '24', '35', 'م']);
-    await expect(widget.locator('.date')).toHaveCSS('direction', 'rtl');
-    await expect(widget.locator('.date')).toHaveCSS('text-align', 'left');
-    const lead = await widget.locator('.clock').evaluate(row =>
-      Math.abs(row.firstElementChild.getBoundingClientRect().left - row.getBoundingClientRect().left));
-    expect(lead).toBeLessThan(1);
-  }
+for (const [language, direction, period] of [['ar', 'rtl', 'م'], ['en', 'ltr', 'pm']]) {
+  test(`clock start alignment follows the reading direction for old and new settings (${language})`, async ({ page }) => {
+    await page.setViewportSize({ width: 1200, height: 720 });
+    await page.clock.setFixedTime(new Date(2026, 0, 1, 22, 24, 35));
+    await page.route('https://api.open-meteo.com/v1/forecast?*', route => route.fulfill({ json: {
+      current: { weather_code: 0, is_day: 1, temperature_2m: 16, apparent_temperature: 15 },
+      daily: { temperature_2m_max: [19], temperature_2m_min: [11] },
+    } }));
+    await show(page, [undefined, 'left', 'start'].map((align, i) => ({
+      id: `start-${i}`, type: 'clock', x: (i % 2) * 6, y: Math.floor(i / 2) * 4,
+      w: 6, h: 4, options: { providers: [], align },
+    })), { language, hour12: true });
 
+    const widgets = page.locator('.w-clock');
+    await expect(widgets).toHaveCount(3);
+    for (const widget of await widgets.all()) {
+      await expect(widget).not.toHaveClass(/clock-centered/);
+      await expect(widget.locator('.status .dot.on')).toBeVisible();
+      await expect(widget.locator('.wx-temp')).toHaveText('16°');
+      await expect(widget.locator('.clock span')).toHaveText(['10', ':', '24', '35', period]);
+      await expect(widget.locator('.date')).toHaveCSS('direction', direction);
+      await expect(widget.locator('.date')).toHaveCSS('text-align', 'start');
+      const offsets = await widget.evaluate((box, rtl) =>
+        ['.status', '.clock', '.date', '.wx'].map(selector => {
+          const row = box.querySelector(selector);
+          const bounds = row.getBoundingClientRect();
+          const edge = rtl ? 'right' : 'left';
+          const content = selector === '.date'
+            ? (() => { const range = document.createRange(); range.selectNodeContents(row); return range.getBoundingClientRect(); })()
+            : (rtl && selector === '.clock' ? row.lastElementChild : row.firstElementChild).getBoundingClientRect();
+          return Math.abs(content[edge] - bounds[edge]);
+        }), direction === 'rtl');
+      for (const offset of offsets) expect(offset).toBeLessThan(2);
+    }
+  });
+}
+
+test('the clock uses the Japanese day period', async ({ page }) => {
+  await page.clock.setFixedTime(new Date(2026, 0, 1, 22, 24, 35));
   await show(page, [{ id: 'jp', type: 'clock', x: 0, y: 0, w: 6, h: 4,
     options: { status: false, weather: false } }], { language: 'ja', hour12: true });
   await expect(page.locator('.w-clock .ap')).toHaveText('午後');
@@ -457,7 +478,7 @@ test('the clock falls back to AM/PM when Intl has no day period', async ({ page 
   expect(fallback).toEqual(['AM', 'PM']);
 });
 
-test('the clock alignment setting defaults to left and saves Center', async ({ page }) => {
+test('the clock alignment setting reads legacy left as Start and saves Center', async ({ page }) => {
   await page.goto('/settings/#pages');
   await page.waitForFunction(() => cfg && cfg.pages);
   await page.evaluate(() => {
@@ -467,8 +488,14 @@ test('the clock alignment setting defaults to left and saves Center', async ({ p
     renderInspector();
   });
   const align = page.locator('#inspector .field', { has: page.getByText('Align', { exact: true }) }).locator('select');
-  await expect(align).toHaveValue('left');
-  await expect(align.locator('option')).toHaveText(['Left', 'Center']);
+  await expect(align).toHaveValue('start');
+  await expect(align.locator('option')).toHaveText(['Start', 'Center']);
+  await page.evaluate(() => {
+    curPage().widgets[selWidget].options = { align: 'left' };
+    renderInspector();
+  });
+  await expect(align).toHaveValue('start');
+  await expect(align.locator('option')).toHaveCount(2);
   await align.selectOption('center');
   await page.locator('#save').click();
   await expect(page.locator('#save')).toBeDisabled();

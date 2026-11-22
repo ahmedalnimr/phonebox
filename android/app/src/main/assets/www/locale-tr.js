@@ -920,7 +920,7 @@ window.PhoneBoxLocaleData = Object.assign(window.PhoneBoxLocaleData || {}, {
       "Start, stop and save replay buffer.": "Başlat, durdur ve tekrar oynatma arabirimini kaydet.",
       "Status": "Durum",
       "Align": "Hizalama",
-      "Left": "Sola",
+      "Start": "Satır başı",
       "Center": "Ortaya",
       "Status line (PC, battery, quotas)": "Durum çubuğu (PC, pil, kotalar)",
       "Step": "Adım",

@@ -1430,7 +1430,7 @@ window.PhoneBoxLocaleData = Object.assign(window.PhoneBoxLocaleData || {}, {
       "Start, stop and save replay buffer.": "रीप्ले बफर प्रारंभ, रोकें तथा सहेजें.",
       "Status": "स्थिति",
       "Align": "संरेखण",
-      "Left": "बाएँ",
+      "Start": "पंक्ति की शुरुआत",
       "Center": "बीच में",
       "Status line (PC, battery, quotas)": "स्थिति पंक्ति (PC, बैटरी, कोटा)",
       "Steam friend activity": "Steam मित्र क्रिया",

@@ -1430,7 +1430,7 @@ window.PhoneBoxLocaleData = Object.assign(window.PhoneBoxLocaleData || {}, {
       "Start, stop and save replay buffer.": "Spusťte, zastavte a uložte vyrovnávací paměť přehrávání.",
       "Status": "Status",
       "Align": "Zarovnání",
-      "Left": "Vlevo",
+      "Start": "Začátek řádku",
       "Center": "Na střed",
       "Status line (PC, battery, quotas)": "Stavový řádek (PC, baterie, kvóty)",
       "Steam friend activity": "Steam Aktivita přátel",
