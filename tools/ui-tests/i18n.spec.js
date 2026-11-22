@@ -350,14 +350,14 @@ test('follow system distinguishes Traditional Chinese and the legacy Indonesian 
 });
 
 
-for (const [language, direction, periods] of [['ar', 'rtl', ['ص', 'م']], ['en', 'ltr', ['AM', 'PM']]]) {
+for (const [language, direction, periods] of [['ar', 'rtl', ['ص', 'م']], ['en', 'ltr', ['am', 'pm']]]) {
   test(`the clock is centered and keeps time in order (${language})`, async ({ page }) => {
     await page.route('https://api.open-meteo.com/v1/forecast?*', route => route.fulfill({ json: {
       current: { weather_code: 0, is_day: 1, temperature_2m: 16, apparent_temperature: 15 },
       daily: { temperature_2m_max: [19], temperature_2m_min: [11] },
     } }));
     await show(page, [
-      { id: 'clock', type: 'clock', x: 0, y: 0, w: 6, h: 4, options: { providers: [] } },
+      { id: 'clock', type: 'clock', x: 0, y: 0, w: 6, h: 4, options: { providers: [], align: 'center' } },
       { id: 'media', type: 'media', x: 6, y: 0, w: 6, h: 4 },
     ], { language, hour12: true });
     const clock = page.locator('.w-clock .clock');
@@ -419,6 +419,65 @@ for (const [language, direction, periods] of [['ar', 'rtl', ['ص', 'م']], ['en'
     await expect(page.locator('#nDate')).toHaveCSS('direction', direction);
   });
 }
+
+test('legacy clocks and explicit left align the time left while keeping locale periods', async ({ page }) => {
+  await page.clock.setFixedTime(new Date(2026, 0, 1, 22, 24, 35));
+  await show(page, [
+    { id: 'legacy', type: 'clock', x: 0, y: 0, w: 6, h: 4, options: { status: false, weather: false } },
+    { id: 'left', type: 'clock', x: 6, y: 0, w: 6, h: 4, options: { status: false, weather: false, align: 'left' } },
+  ], { language: 'ar', hour12: true });
+  const widgets = page.locator('.w-clock');
+  await expect(widgets).toHaveCount(2);
+  for (const widget of await widgets.all()) {
+    await expect(widget).not.toHaveClass(/clock-centered/);
+    await expect(widget.locator('.clock span')).toHaveText(['10', ':', '24', '35', 'م']);
+    await expect(widget.locator('.date')).toHaveCSS('direction', 'rtl');
+    await expect(widget.locator('.date')).toHaveCSS('text-align', 'left');
+    const lead = await widget.locator('.clock').evaluate(row =>
+      Math.abs(row.firstElementChild.getBoundingClientRect().left - row.getBoundingClientRect().left));
+    expect(lead).toBeLessThan(1);
+  }
+
+  await show(page, [{ id: 'jp', type: 'clock', x: 0, y: 0, w: 6, h: 4,
+    options: { status: false, weather: false } }], { language: 'ja', hour12: true });
+  await expect(page.locator('.w-clock .ap')).toHaveText('午後');
+});
+
+test('the clock falls back to AM/PM when Intl has no day period', async ({ page }) => {
+  await page.addInitScript(() => {
+    Intl.DateTimeFormat = class extends Intl.DateTimeFormat {
+      formatToParts() { return []; }
+    };
+  });
+  await page.goto('/panel/');
+  const fallback = await page.evaluate(async () => {
+    const { clockPeriod } = await import('/panel/main.js');
+    return [10, 22].map(hour => clockPeriod(new Date(2026, 0, 1, hour)));
+  });
+  expect(fallback).toEqual(['AM', 'PM']);
+});
+
+test('the clock alignment setting defaults to left and saves Center', async ({ page }) => {
+  await page.goto('/settings/#pages');
+  await page.waitForFunction(() => cfg && cfg.pages);
+  await page.evaluate(() => {
+    const p = curPage();
+    p.widgets.push({ id: 'align-test', type: 'clock', x: 0, y: 0, w: 6, h: 4 });
+    selWidget = p.widgets.length - 1;
+    renderInspector();
+  });
+  const align = page.locator('#inspector .field', { has: page.getByText('Align', { exact: true }) }).locator('select');
+  await expect(align).toHaveValue('left');
+  await expect(align.locator('option')).toHaveText(['Left', 'Center']);
+  await align.selectOption('center');
+  await page.locator('#save').click();
+  await expect(page.locator('#save')).toBeDisabled();
+  const saved = await page.evaluate(async () => {
+    const config = await (await fetch('/api/settings')).json();
+    return config.pages.flatMap(p => p.widgets).find(w => w.id === 'align-test')?.options?.align;
+  });
+  expect(saved).toBe('center');
+});
 
 test('the idle media widget uses the Arabic no-audio label', async ({ page }) => {
   await show(page, [{ id: 'media', type: 'media', x: 0, y: 0, w: 8, h: 4, options: {} }], { language: 'ar' });

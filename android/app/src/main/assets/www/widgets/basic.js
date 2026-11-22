@@ -23,6 +23,7 @@ W.clock = {
     const hh = h('span', 'hh', '--'), colon = h('span', 'colon', ':'), mm = h('span', 'mm', '--'), ss = h('span', 'sec'), ap = h('span', 'ap');
     const date = o.date !== false ? h('div', 'date') : null;
     const wx = o.weather !== false ? wxBlock() : null;
+    box.classList.toggle('clock-centered', o.align === 'center');
     box.append(status || '', h('div', 'clock', hh, colon, mm, ss, ap), date || '', wx || '');
     box.style.setProperty('--tf', (0.84 - (status ? 0.1 : 0) - (date ? 0.11 : 0) - (wx ? 0.2 : 0)).toFixed(2));
     return {
@@ -33,7 +34,7 @@ W.clock = {
           const now = new Date();
           const H = now.getHours(), h12 = hour12();
           hh.textContent = h12 ? String(H % 12 || 12) : pad(H);
-          ap.textContent = h12 ? clockPeriod(H) : '';
+          ap.textContent = h12 ? clockPeriod(now) : '';
           mm.textContent = pad(now.getMinutes());
           ss.textContent = cfg.display?.showSeconds === false ? '' : pad(now.getSeconds());
           // the colon blinks once a second from here, not from a CSS animation: a running animation makes the browser draw a frame

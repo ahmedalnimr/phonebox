@@ -421,11 +421,21 @@ export function hour12() {
   }
   return false;
 }
-export const clockPeriod = (hour) => I18n?.getLang() === 'ar'
-  ? (hour < 12 ? 'ص' : 'م')
-  : (hour < 12 ? 'AM' : 'PM');
+let clockPeriodLocale, clockPeriodFormatter;
+export function clockPeriod(date) {
+  const fallback = date.getHours() < 12 ? 'AM' : 'PM';
+  try {
+    if (clockPeriodLocale !== LOCALE) {
+      clockPeriodFormatter = new Intl.DateTimeFormat(LOCALE, { hour: 'numeric', hour12: true });
+      clockPeriodLocale = LOCALE;
+    }
+    return clockPeriodFormatter.formatToParts(date).find(part => part.type === 'dayPeriod')?.value || fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
 export const fmtClock = (H, M, period = H < 12 ? 'AM' : 'PM') => (hour12() ? `${H % 12 || 12}:${pad(M)} ${period}` : `${pad(H)}:${pad(M)}`);
-const fmtNightClock = (d) => fmtClock(d.getHours(), d.getMinutes(), clockPeriod(d.getHours()));
+const fmtNightClock = (d) => fmtClock(d.getHours(), d.getMinutes(), clockPeriod(d));
 export const fmtHM = (d) => fmtClock(d.getHours(), d.getMinutes());
 export const fmtTime = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ':' + pad(s % 60); };
 export function fmtRate(bps) {
